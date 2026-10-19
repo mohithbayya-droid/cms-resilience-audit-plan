@@ -1,0 +1,1022 @@
+<title>CMS Resilience Audit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Figtree:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+/* === TOKENS === */
+:root {
+  --bg:          #F6F5F0;
+  --surface:     #FFFFFF;
+  --surface-2:   #EDECEA;
+  --border:      #DDD9CE;
+  --fg:          #1A1B26;
+  --fg-muted:    #65667A;
+  --accent:      #1F3D9E;
+  --accent-mid:  #3458C8;
+  --accent-soft: #EEF1FD;
+  --red-fg:      #9B1A1A;
+  --red-bg:      #FEF3F3;
+  --red-b:       #FCBBBB;
+  --amber-fg:    #7A3A0A;
+  --amber-bg:    #FFFBEB;
+  --amber-b:     #FBD38D;
+  --green-fg:    #065F46;
+  --green-bg:    #ECFDF5;
+  --green-b:     #6EE7B7;
+  --code-bg:     #ECEAE3;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:          #0D1018;
+    --surface:     #141826;
+    --surface-2:   #1D2238;
+    --border:      #2B3050;
+    --fg:          #E1E3F2;
+    --fg-muted:    #888BAA;
+    --accent:      #6B8FDE;
+    --accent-mid:  #8BAAF4;
+    --accent-soft: #141C3E;
+    --red-fg:      #FCA5A5;
+    --red-bg:      #2A0C0C;
+    --red-b:       #7F1D1D;
+    --amber-fg:    #FCD34D;
+    --amber-bg:    #221500;
+    --amber-b:     #78350F;
+    --green-fg:    #6EE7B7;
+    --green-bg:    #031A10;
+    --green-b:     #065F46;
+    --code-bg:     #191D2E;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:          #0D1018;
+  --surface:     #141826;
+  --surface-2:   #1D2238;
+  --border:      #2B3050;
+  --fg:          #E1E3F2;
+  --fg-muted:    #888BAA;
+  --accent:      #6B8FDE;
+  --accent-mid:  #8BAAF4;
+  --accent-soft: #141C3E;
+  --red-fg:      #FCA5A5;
+  --red-bg:      #2A0C0C;
+  --red-b:       #7F1D1D;
+  --amber-fg:    #FCD34D;
+  --amber-bg:    #221500;
+  --amber-b:     #78350F;
+  --green-fg:    #6EE7B7;
+  --green-bg:    #031A10;
+  --green-b:     #065F46;
+  --code-bg:     #191D2E;
+  color-scheme: dark;
+}
+
+/* === RESET & BASE === */
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'Figtree', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0;
+}
+.page { max-width: 880px; margin: 0 auto; padding-block: 48px; }
+
+/* === TYPOGRAPHY === */
+h1, h2, h3, h4 {
+  font-family: 'Syne', system-ui, sans-serif;
+  line-height: 1.2;
+  text-wrap: balance;
+  margin: 0;
+}
+h1 { font-size: clamp(26px, 5vw, 40px); font-weight: 800; letter-spacing: -0.025em; }
+h2 {
+  font-size: 20px; font-weight: 700; letter-spacing: -0.01em;
+  margin-top: 60px; padding-bottom: 12px;
+  border-bottom: 2px solid var(--border);
+}
+h3 { font-size: 16px; font-weight: 700; margin-top: 36px; color: var(--accent-mid); }
+h4 {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.09em; color: var(--fg-muted); margin-top: 20px; margin-bottom: 6px;
+}
+p { margin: 0 0 14px; }
+p:last-child { margin-bottom: 0; }
+a { color: var(--accent); text-decoration-thickness: 1px; }
+strong { font-weight: 600; }
+ul, ol { padding-left: 22px; margin: 8px 0 14px; }
+li { margin-bottom: 6px; }
+
+code {
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 12px;
+  background: var(--code-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 20px;
+  overflow-x: auto;
+  margin: 16px 0;
+}
+pre code { background: none; padding: 0; font-size: 12px; line-height: 1.65; }
+
+/* === TAGS === */
+.tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10.5px; font-weight: 700;
+  font-family: 'Syne', system-ui, sans-serif;
+  text-transform: uppercase; letter-spacing: 0.07em;
+  padding: 2px 7px; border-radius: 4px; white-space: nowrap; border: 1px solid;
+}
+.tag-crash  { color: var(--red-fg);   background: var(--red-bg);   border-color: var(--red-b);   }
+.tag-warn   { color: var(--amber-fg); background: var(--amber-bg); border-color: var(--amber-b); }
+.tag-safe   { color: var(--green-fg); background: var(--green-bg); border-color: var(--green-b); }
+.tag-info   { color: var(--accent);   background: var(--accent-soft); border-color: var(--accent); }
+
+/* === HEADER === */
+.doc-header { margin-bottom: 40px; padding-bottom: 32px; border-bottom: 1px solid var(--border); }
+.doc-meta {
+  display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+  margin-bottom: 14px;
+  font-size: 11px; font-weight: 700; font-family: 'Syne', sans-serif;
+  text-transform: uppercase; letter-spacing: 0.09em; color: var(--fg-muted);
+}
+.doc-sep { color: var(--border); }
+.doc-subtitle { max-width: 68ch; color: var(--fg-muted); margin-top: 14px; }
+
+/* === CALLOUT === */
+.callout {
+  display: flex; gap: 14px; padding: 16px 20px;
+  border-radius: 8px; margin: 20px 0; border: 1px solid;
+}
+.callout-icon { font-size: 17px; flex-shrink: 0; line-height: 1.7; }
+.callout-body { flex: 1; min-width: 0; font-size: 14px; }
+.callout-body strong { display: block; margin-bottom: 4px; }
+.callout-body p { font-size: 14px; }
+.callout-red   { background: var(--red-bg);    border-color: var(--red-b);   }
+.callout-amber { background: var(--amber-bg);  border-color: var(--amber-b); }
+.callout-blue  { background: var(--accent-soft); border-color: var(--accent); }
+
+/* === TABLES === */
+.table-wrap { overflow-x: auto; margin: 18px 0; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 520px; }
+th {
+  text-align: left;
+  font-family: 'Syne', system-ui, sans-serif;
+  font-size: 10.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--fg-muted); padding: 8px 14px;
+  background: var(--surface-2); border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface-2); }
+table code { font-size: 11px; }
+
+/* === FIELD PILLS === */
+.field-pills { display: flex; flex-wrap: wrap; gap: 4px; }
+.pill {
+  font-size: 11px; font-family: 'JetBrains Mono', monospace;
+  padding: 2px 7px; border-radius: 4px; border: 1px solid;
+  background: var(--code-bg); border-color: var(--border); color: var(--fg);
+}
+.pill-crash { background: var(--red-bg); border-color: var(--red-b); color: var(--red-fg); }
+
+/* === TWO-COL === */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+@media (max-width: 620px) { .two-col { grid-template-columns: 1fr; } }
+
+/* === INSET CARD === */
+.inset {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px;
+}
+.eyebrow {
+  font-size: 10.5px; font-weight: 700; font-family: 'Syne', sans-serif;
+  text-transform: uppercase; letter-spacing: 0.09em;
+  color: var(--accent); display: block; margin-bottom: 6px;
+}
+.inset ul { font-size: 13px; margin: 6px 0 0; }
+
+/* === TOC === */
+.toc {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px 24px; margin: 32px 0;
+}
+.toc h4 { margin-top: 0; margin-bottom: 10px; }
+.toc ol { margin: 0; padding-left: 18px; }
+.toc li { margin-bottom: 5px; font-size: 14px; }
+.toc a { text-decoration: none; }
+.toc a:hover { text-decoration: underline; }
+
+/* === CHECKLIST === */
+.checklist { list-style: none; margin: 12px 0; padding: 0; }
+.checklist li {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13.5px;
+}
+.checklist li:last-child { border-bottom: none; }
+.checklist li.done { opacity: 0.5; }
+.checklist li.done .clabel { text-decoration: line-through; }
+.cbox {
+  width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 4px;
+  flex-shrink: 0; cursor: pointer; display: flex; align-items: center;
+  justify-content: center; margin-top: 2px; transition: border-color 0.15s, background 0.15s;
+  user-select: none;
+}
+.cbox:hover { border-color: var(--accent); }
+.cbox.checked { border-color: var(--green-b); background: var(--green-bg); }
+.cbox.checked::after { content: "✓"; font-size: 11px; color: var(--green-fg); font-weight: 700; }
+.clabel { flex: 1; min-width: 0; cursor: pointer; }
+
+/* === MISC === */
+hr { border: none; border-top: 1px solid var(--border); margin: 44px 0; }
+.footer { color: var(--fg-muted); font-size: 13px; padding-bottom: 16px; }
+
+@media (prefers-reduced-motion: reduce) { .cbox { transition: none; } }
+</style>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <header class="doc-header">
+    <div class="doc-meta">
+      <span>PLG-69859</span>
+      <span class="doc-sep">·</span>
+      <span>web-platform</span>
+      <span class="doc-sep">·</span>
+      <span>Oct 2026</span>
+      <span class="doc-sep">·</span>
+      <span class="tag tag-info">Part 1 &mdash; Audit Plan</span>
+    </div>
+    <h1>CMS Resilience Audit</h1>
+    <p class="doc-subtitle">
+      A full map of the Contentful data flow — every content type, fetch path, and
+      transformation layer — to establish exactly where missing or unpublished entries
+      can crash pages, before designing the fix.
+    </p>
+  </header>
+
+  <!-- TOC -->
+  <nav class="toc" aria-label="Contents">
+    <h4>Contents</h4>
+    <ol>
+      <li><a href="#background">Background &amp; Context</a></li>
+      <li><a href="#architecture">CMS Architecture Map</a></li>
+      <li><a href="#gap">The <code>removeUnresolved</code> Gap</a></li>
+      <li><a href="#crash-sites">Identified Crash Sites</a></li>
+      <li><a href="#risk">Risk Matrix</a></li>
+      <li><a href="#checklist">Audit Checklist</a></li>
+      <li><a href="#open-questions">Open Questions</a></li>
+    </ol>
+  </nav>
+
+
+  <!-- ===================== SECTION 1 ===================== -->
+  <section id="background">
+    <h2>1. Background &amp; Context</h2>
+    <p>
+      On Oct 16, the Plans &amp; Pricing page returned 500 errors for <code>en-GB</code>
+      and <code>en-IE</code> storefronts. The cause: a Contentful <code>II18Next</code> entry
+      referenced by an addon's <code>cost</code> field was not published for those locales.
+      With <code>removeUnresolved: true</code> set, the SDK silently removed that link —
+      leaving <code>undefined</code> where code expected an entry, which crashed the
+      SSR render and returned a 500 to every visitor on those locales.
+    </p>
+
+    <div class="callout callout-red">
+      <span class="callout-icon">⚠</span>
+      <div class="callout-body">
+        <strong>Root cause: missing null guards at the transformation layer</strong>
+        <p>
+          <code>removeUnresolved: true</code> strips unresolved link objects from the response,
+          but it does <em>not</em> add null guards to any access point downstream. Every required
+          linked field typed as non-optional in the content types
+          (<code>seo</code>, <code>trialTermsUrl</code>, <code>privacyUrl</code>, addon <code>cost</code>, …)
+          is a latent crash site whenever that entry is unpublished for a locale.
+        </p>
+      </div>
+    </div>
+
+    <p>This work is split into two parts:</p>
+    <div class="two-col">
+      <div class="inset">
+        <span class="eyebrow">Part 1 — this document</span>
+        <strong>Architecture Audit</strong>
+        <p style="font-size: 13.5px; color: var(--fg-muted); margin-top: 8px;">
+          Map every CMS entry point, content type, fetch path, and transformation layer.
+          Identify all crash-risk access patterns across all widgets and pages so the
+          solution covers everything, not just addons.
+        </p>
+      </div>
+      <div class="inset">
+        <span class="eyebrow">Part 2 — after audit</span>
+        <strong>Solution Design &amp; Implementation</strong>
+        <p style="font-size: 13.5px; color: var(--fg-muted); margin-top: 8px;">
+          Based on audit findings. Sync with Meghana and Tim on CSF and
+          subscriptions-billing (migrated or in progress). Decide whether the fix
+          belongs at the fetch boundary, the transformation layer, or per-widget.
+        </p>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===================== SECTION 2 ===================== -->
+  <section id="architecture">
+    <h2>2. CMS Architecture Map</h2>
+    <p>
+      The platform fetches CMS data from <strong>two distinct Contentful spaces</strong>
+      via <strong>three separate SDK clients</strong> across five page-level entry points,
+      one API route, and one widget-level server script.
+    </p>
+
+    <h3>2.1 Contentful Spaces</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Space</th><th>Env Vars</th><th>Content Types Served</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Main ecom space</strong></td>
+            <td><code>CONTENTFUL_SPACE_ID</code> / <code>CONTENTFUL_ENV_ID</code></td>
+            <td><code>pricingPlansPage</code>, <code>checkoutPage</code>, <code>subscriptionPage</code>, and 29 component types</td>
+            <td><span class="tag tag-safe">Active</span></td>
+          </tr>
+          <tr>
+            <td><strong>CSF space</strong></td>
+            <td><code>CONTENTFUL_CSF_SPACE_ID</code> / <code>CONTENTFUL_CSF_ENV_ID</code></td>
+            <td><code>csfPage</code> and cancel-save-flow component types</td>
+            <td><span class="tag tag-warn">Migration in progress → ecom space</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>2.2 Contentful Client Instances</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>File</th><th>Space</th><th>removeUnresolved</th><th>Used by</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>apps/commerce-web/src/services/cms/client.ts</code></td>
+            <td>Main ecom</td>
+            <td><span class="tag tag-safe">true</span></td>
+            <td>All commerce-web CMS services (plans, checkout, subscription, subscription-billing)</td>
+          </tr>
+          <tr>
+            <td><code>apps/commerce-web/src/services/cms/csfClient.ts</code></td>
+            <td>CSF space</td>
+            <td><span class="tag tag-safe">true</span></td>
+            <td><code>cancelSaveFlowPage.ts</code> only</td>
+          </tr>
+          <tr>
+            <td><code>widgets/subscriptions-billing/src/scripts/client.ts</code></td>
+            <td>Main ecom (via <code>DXP_PUBLIC_*</code> env var prefix)</td>
+            <td><span class="tag tag-safe">true</span></td>
+            <td>subscriptions-billing widget's own server script — diverged copy of the commerce-web client</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>2.3 Content Type Inventory</h3>
+    <p>
+      Of the 32 content types defined in <code>@dxp/content</code>, the following are
+      directly fetched by pages. Red pills mark linked fields where <code>removeUnresolved</code>
+      can silently set the value to <code>undefined</code>, causing a crash on any access
+      without a null guard.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Content Type ID</th>
+            <th>Required linked fields (crash-risk)</th>
+            <th>Also-linked (optional in TS types)</th>
+            <th>Fetched by</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>pricingPlansPage</code></td>
+            <td>
+              <div class="field-pills">
+                <span class="pill pill-crash">seo</span>
+                <span class="pill pill-crash">trialTermsUrl</span>
+                <span class="pill pill-crash">privacyUrl</span>
+                <span class="pill pill-crash">developerSignupUrl</span>
+              </div>
+            </td>
+            <td>
+              <div class="field-pills">
+                <span class="pill">socialMetadata?</span>
+                <span class="pill">logo?</span>
+                <span class="pill">helpLinks?</span>
+                <span class="pill">plans[]</span>
+                <span class="pill">addonGroup?[]</span>
+                <span class="pill">faq?</span>
+              </div>
+            </td>
+            <td><code>/plans/[planGroup]</code>, <code>/api/cms/recommendations</code></td>
+          </tr>
+          <tr>
+            <td><code>checkoutPage</code></td>
+            <td>
+              <div class="field-pills">
+                <span class="pill pill-crash">seo</span>
+                <span class="pill pill-crash">trialTermsUrl</span>
+                <span class="pill pill-crash">privacyUrl</span>
+                <span class="pill pill-crash">preferenceCenterUrl</span>
+                <span class="pill pill-crash">cancelUrl</span>
+                <span class="pill pill-crash">supportUrl</span>
+              </div>
+            </td>
+            <td>
+              <div class="field-pills">
+                <span class="pill">logo?</span>
+                <span class="pill">helpLinks?</span>
+                <span class="pill">plans[]</span>
+                <span class="pill">addonGroup?[]</span>
+                <span class="pill">faq?</span>
+                <span class="pill">footnotes?[]</span>
+              </div>
+            </td>
+            <td><code>/checkout</code>, <code>/billing/edit</code>, <code>/subscription</code> (widget script)</td>
+          </tr>
+          <tr>
+            <td><code>subscriptionPage</code></td>
+            <td>
+              <div class="field-pills">
+                <span class="pill pill-crash">seo</span>
+                <span class="pill pill-crash">trialTermsUrl</span>
+                <span class="pill pill-crash">privacyUrl</span>
+                <span class="pill pill-crash">preferenceCenterUrl</span>
+                <span class="pill pill-crash">cancelUrl</span>
+                <span class="pill pill-crash">supportUrl</span>
+                <span class="pill pill-crash">manageSubscriptionUrl</span>
+              </div>
+            </td>
+            <td><div class="field-pills"><span class="pill">logo?</span><span class="pill">helpLinks?</span><span class="pill">plans[]</span></div></td>
+            <td><code>/subscription</code> (partially — <code>subscriptionPage.ts</code> exists but appears superseded by the widget-script path)</td>
+          </tr>
+          <tr>
+            <td><code>csfPage</code> (CSF space)</td>
+            <td>
+              <div class="field-pills">
+                <span class="pill pill-crash">plans[] required</span>
+                <span class="pill pill-crash">steps[] required</span>
+                <span class="pill pill-crash">errorMessages[] required</span>
+                <span class="pill pill-crash">uiStrings[] required</span>
+              </div>
+            </td>
+            <td><div class="field-pills"><span class="pill">cards?</span><span class="pill">surveys?</span><span class="pill">featureTables?</span></div></td>
+            <td><code>/subscription/[action]</code> (cancel-save flow)</td>
+          </tr>
+          <tr>
+            <td><code>addon</code> (nested in plans page)</td>
+            <td>
+              <div class="field-pills">
+                <span class="pill pill-crash">cost: II18Next ← Oct 16 crash</span>
+              </div>
+            </td>
+            <td>
+              <div class="field-pills">
+                <span class="pill">units?</span>
+                <span class="pill">purchaseDisclaimer?</span>
+                <span class="pill">yearlyBucketQuantites?[]</span>
+                <span class="pill">monthlyBucketQuantities?[]</span>
+                <span class="pill">image?</span>
+              </div>
+            </td>
+            <td>Nested: <code>pricingPlansPage → addonGroup[] → addons[]</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>2.4 Every Fetch Path</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Route / Surface</th>
+            <th>Strategy</th>
+            <th>Fetch function</th>
+            <th>Content type</th>
+            <th>Mapper</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>/plans/[planGroup]</code><br><small style="color:var(--fg-muted)">/plans-and-pricing/[planGroup]</small></td>
+            <td><span class="tag tag-info">ISR · blocking fallback</span></td>
+            <td><code>fetchPlansPageByEntryName()</code></td>
+            <td><code>pricingPlansPage</code></td>
+            <td><code>mapPlansPageEntryToPlansPageProps()</code></td>
+          </tr>
+          <tr>
+            <td><code>/plans/[planGroup]/[action]</code><br><small style="color:var(--fg-muted)">switch-plans flow</small></td>
+            <td><span class="tag tag-warn">SSR</span></td>
+            <td><code>fetchPlansPageByEntryName()</code></td>
+            <td><code>pricingPlansPage</code></td>
+            <td><code>mapPlansPageEntryToPlansPageProps()</code></td>
+          </tr>
+          <tr>
+            <td><code>/api/cms/recommendations</code><br><small style="color:var(--fg-muted)">IPT widget data proxy</small></td>
+            <td><span class="tag tag-info">API route (server)</span></td>
+            <td><code>fetchPlansPageByEntryName()</code></td>
+            <td><code>pricingPlansPage</code></td>
+            <td><code>mapPlansPageEntryToWidgetData()</code></td>
+          </tr>
+          <tr>
+            <td><code>/checkout</code></td>
+            <td><span class="tag tag-warn">SSR</span></td>
+            <td><code>fetchCheckoutPageByEntryName('Checkout')</code></td>
+            <td><code>checkoutPage</code></td>
+            <td><code>mapCheckoutPageEntryToCheckoutPageProps()</code></td>
+          </tr>
+          <tr>
+            <td><code>/billing/edit</code></td>
+            <td><span class="tag tag-warn">SSR</span></td>
+            <td><code>fetchCheckoutPageByEntryName('Edit Billing')</code></td>
+            <td><code>checkoutPage</code></td>
+            <td><code>mapCheckoutPageEntryToCheckoutPageProps()</code></td>
+          </tr>
+          <tr>
+            <td><code>/subscription</code></td>
+            <td><span class="tag tag-warn">SSR</span></td>
+            <td><code>fetchSubscriptionBillingPageByEntryName()</code> <em>(widget script)</em></td>
+            <td><code>checkoutPage</code></td>
+            <td><code>mapSubscriptionBillingPageEntryToSubscriptionBillingProps()</code></td>
+          </tr>
+          <tr>
+            <td><code>/subscription/[action]</code><br><small style="color:var(--fg-muted)">cancel-save flow</small></td>
+            <td><span class="tag tag-warn">SSR</span></td>
+            <td><code>fetchCsfPageByEntryName()</code></td>
+            <td><code>csfPage</code> (CSF space)</td>
+            <td><code>mapCsfPageEntryToCsfPageProps()</code></td>
+          </tr>
+          <tr>
+            <td>subscriptions-billing widget (standalone / MFE)</td>
+            <td><span class="tag tag-warn">SSR / widget scripts</span></td>
+            <td><code>fetchSubscriptionBillingPageByEntryName()</code> <em>(widget-local copy)</em></td>
+            <td><code>checkoutPage</code></td>
+            <td><code>mapSubscriptionBillingPageEntryToSubscriptionBillingProps()</code></td>
+          </tr>
+          <tr>
+            <td>pricing-plans widget (client-side recommendations)</td>
+            <td><span class="tag tag-info">Client fetch via Redux saga</span></td>
+            <td><code>ecomFetch('/cms/recommendations')</code> → proxied to API route</td>
+            <td><code>pricingPlansPage</code></td>
+            <td><code>mapPlansPageEntryToWidgetData()</code> (runs server-side in API route)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>2.5 Transformation Layer</h3>
+    <p>
+      All mapper functions live in one of two places. The duplication between them is a
+      scope question for the subscriptions-billing migration.
+    </p>
+    <div class="two-col">
+      <div class="inset">
+        <span class="eyebrow">commerce-web · canonical</span>
+        <code style="display:block; font-size: 11px; margin-bottom: 10px;">apps/commerce-web/src/services/cms/</code>
+        <ul>
+          <li><code>utils.ts</code> — shared helpers: <code>mapAddonGroupEntryToProps</code>, <code>mapFeatureGroupEntryToProps</code>, <code>mapCardEntryToProps</code>, <code>mapHyperlinkGroupCollectionProps</code>, etc.</li>
+          <li><code>plansPage.ts</code> — <code>mapPlansPageEntryToPlansPageProps()</code></li>
+          <li><code>checkoutPage.ts</code> — 3 mapper variants for checkout, subscriptions-management, and subscription-billing uses</li>
+          <li><code>subscriptionPage.ts</code> — <code>mapSubscriptionPageEntryToSubscriptionPageProps()</code></li>
+          <li><code>cancelSaveFlowPage.ts</code> — <code>mapCsfPageEntryToCsfPageProps()</code></li>
+          <li><code>recommendationsWidgetData.ts</code> — <code>mapPlansPageEntryToWidgetData()</code></li>
+        </ul>
+      </div>
+      <div class="inset">
+        <span class="eyebrow">subscriptions-billing widget · diverged copy</span>
+        <code style="display:block; font-size: 11px; margin-bottom: 10px;">widgets/subscriptions-billing/src/scripts/</code>
+        <ul>
+          <li><code>subscriptionBillingPage.ts</code> — duplicates <code>mapHyperlinkGroupEntryProps</code>, <code>mapCardEntryToProps</code>, <code>getCardsById</code>, and the top-level page mapper</li>
+          <li>Same crash patterns as commerce-web equivalents</li>
+          <li>Scope: needs sync with Meghana / Tim before the fix is applied here</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===================== SECTION 3 ===================== -->
+  <section id="gap">
+    <h2>3. The <code>removeUnresolved: true</code> Gap</h2>
+    <p>
+      All three Contentful clients set <code>removeUnresolved: true</code>. The intention
+      was to handle missing entries, and many engineers assumed this makes the codebase
+      resilient to unpublished content. <strong>It doesn't.</strong>
+    </p>
+
+    <h3>What it does</h3>
+    <ul>
+      <li><strong>Array fields:</strong> removes unresolved entries from the array (silently, no error)</li>
+      <li><strong>Object/reference fields:</strong> sets the field value to <code>undefined</code></li>
+    </ul>
+
+    <h3>What it doesn't do</h3>
+    <ul>
+      <li>Does not add null guards to any code that reads those fields</li>
+      <li>TypeScript typed fields stay typed as <code>II18Next</code>, <code>IHyperlink</code>, etc. — the compiler gives no warning</li>
+      <li>Any access like <code>entry.fields.cost.fields.key</code> still throws <code>TypeError</code> at runtime when <code>cost</code> is <code>undefined</code></li>
+    </ul>
+
+    <div class="callout callout-amber">
+      <span class="callout-icon">🔎</span>
+      <div class="callout-body">
+        <strong>The Oct 16 failure chain</strong>
+        <p>
+          Contentful entry <code>577ZOq7Skw9OSTkGxbPlPX</code> (an <code>II18Next</code>
+          addon cost item) was not published for <code>en-GB</code> / <code>en-IE</code>.
+          → SDK sets <code>addon.fields.cost = undefined</code>.
+          → <code>mapAddonEntryToProps()</code> spreads <code>...addon.fields</code> — this is safe,
+          no crash here, but <code>cost: undefined</code> is now in the mapped output.
+          → A component in the pricing-plans widget renders <code>addon.cost.fields.key</code>
+          without a null check.
+          → <code>TypeError: Cannot read properties of undefined</code>
+          → Next.js SSR catches the render crash → HTTP 500.
+        </p>
+      </div>
+    </div>
+
+    <p>
+      The <code>getStaticProps</code> wraps everything in a try/catch that re-throws
+      (by design — prevents the ISR cache from updating with broken data). For ISR with
+      <code>fallback: 'blocking'</code>, the first request for a locale like <code>en-GB</code>
+      has no cached response to serve. Every visitor on that locale sees the 500 until
+      a content editor publishes the missing entry.
+    </p>
+  </section>
+
+
+  <!-- ===================== SECTION 4 ===================== -->
+  <section id="crash-sites">
+    <h2>4. Identified Crash Sites</h2>
+    <p>
+      These are crash patterns found in the initial code pass. The full audit checklist
+      (§6) covers the remaining widget component trees.
+    </p>
+
+    <h3>Pattern A — Required linked field accessed without null guard in server mappers</h3>
+    <p>
+      These crash in <code>getStaticProps</code> / <code>getServerSideProps</code>,
+      before any component renders.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>Lines</th>
+            <th>Expressions that crash</th>
+            <th>Risk</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>services/cms/plansPage.ts</code></td>
+            <td>102–108</td>
+            <td><code>.fields.seo.fields</code> &nbsp; <code>.fields.trialTermsUrl.fields</code> &nbsp; <code>.fields.privacyUrl.fields</code> &nbsp; <code>.fields.developerSignupUrl.fields</code></td>
+            <td><span class="tag tag-crash">Crash ×4</span></td>
+          </tr>
+          <tr>
+            <td><code>services/cms/checkoutPage.ts</code><br><small>(<code>mapCheckoutPageEntryToPrepayPageProps</code>)</small></td>
+            <td>88–103</td>
+            <td><code>.seo.fields</code> &nbsp; <code>.trialTermsUrl.fields</code> &nbsp; <code>.privacyUrl.fields</code> &nbsp; <code>.preferenceCenterUrl.fields</code> &nbsp; <code>.cancelUrl.fields</code> &nbsp; <code>.supportUrl.fields</code></td>
+            <td><span class="tag tag-crash">Crash ×6</span></td>
+          </tr>
+          <tr>
+            <td><code>services/cms/checkoutPage.ts</code><br><small>(<code>mapCheckoutPageEntryToSubscriptionsManagementPageProps</code>)</small></td>
+            <td>124–134</td>
+            <td>Same 6 fields as above</td>
+            <td><span class="tag tag-crash">Crash ×6</span></td>
+          </tr>
+          <tr>
+            <td><code>services/cms/checkoutPage.ts</code><br><small>(<code>mapCheckoutPageEntryToCheckoutPageProps</code>)</small></td>
+            <td>188–199</td>
+            <td>Same 6 fields as above</td>
+            <td><span class="tag tag-crash">Crash ×6</span></td>
+          </tr>
+          <tr>
+            <td><code>services/cms/subscriptionPage.ts</code></td>
+            <td>82–95</td>
+            <td><code>.seo.fields</code> &nbsp; <code>.trialTermsUrl.fields</code> &nbsp; <code>.privacyUrl.fields</code> &nbsp; <code>.preferenceCenterUrl.fields</code> &nbsp; <code>.cancelUrl.fields</code> &nbsp; <code>.supportUrl.fields</code> &nbsp; <code>.manageSubscriptionUrl.fields</code></td>
+            <td><span class="tag tag-crash">Crash ×7</span></td>
+          </tr>
+          <tr>
+            <td><code>subscriptions-billing/scripts/subscriptionBillingPage.ts</code></td>
+            <td>120–124</td>
+            <td><code>.privacyUrl.fields</code> &nbsp; <code>.noticeToCaliforniaResidentsUrl.fields</code> &nbsp; <code>.trialTermsUrl.fields</code></td>
+            <td><span class="tag tag-crash">Crash ×3</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Pattern B — Unresolved field spreads as <code>undefined</code>, crashes in component tree</h3>
+    <p>
+      The Oct 16 incident. <code>mapAddonEntryToProps()</code> itself is safe — it spreads
+      <code>...addon.fields</code> which harmlessly includes <code>cost: undefined</code>.
+      The crash happens downstream when the component tries to render <code>cost.fields</code>
+      without guarding against it being <code>undefined</code>.
+    </p>
+
+    <div class="callout callout-red">
+      <span class="callout-icon">📍</span>
+      <div class="callout-body">
+        <strong>Exact crash location confirmed — <code>widgets/pricing-plans/src/components/Addons/_Card.tsx</code>, lines 64–65</strong>
+        <p>
+          <code>addonData?.cost</code> uses <code>?.</code> only to guard against <code>addonData</code>
+          being null — it does <em>not</em> protect against <code>cost</code> itself being
+          <code>undefined</code>. When the cost <code>II18Next</code> entry is unpublished for a
+          locale, <code>addonData.cost</code> is <code>undefined</code> and <code>.fields</code> throws.
+        </p>
+      </div>
+    </div>
+
+    <pre><code>// services/cms/utils.ts — mapAddonEntryToProps — safe, cost: undefined just spreads harmlessly
+return group?.fields.addons.map((addon) => ({
+    ...addon.fields,    // cost: undefined is in here — no crash yet
+    json: addon.fields.json ? ...
+}));
+
+// widgets/pricing-plans/src/components/Addons/_Card.tsx:64 — ACTUAL CRASH ↓
+return t(addonData?.cost.fields.key as string, {     // ← TypeError here
+    defaultValue: addonData?.cost.fields.value,      // ← and here
+});
+
+// Fix — add ?. after cost
+return t(addonData?.cost?.fields?.key as string, {
+    defaultValue: addonData?.cost?.fields?.value,
+});</code></pre>
+
+    <div class="callout callout-blue">
+      <span class="callout-icon">📋</span>
+      <div class="callout-body">
+        <strong>subscriptions-billing component tree still needs a search pass</strong>
+        <p>
+          The pricing-plans crash site is confirmed above. <code>widgets/subscriptions-billing/src/</code>
+          still needs a grep pass for the same unguarded <code>.fields</code> pattern on fields
+          that <code>removeUnresolved</code> could nullify.
+        </p>
+      </div>
+    </div>
+
+    <h3>Pattern C — Cancel-Save Flow <span class="tag tag-safe" style="vertical-align:middle">Already safe</span></h3>
+    <p>
+      CSF does <strong>not</strong> call Contentful at render time. The migrated widget at
+      <code>plg-cancel-save-flow/src/</code> loads CMS data from
+      <strong>pre-generated JSON files</strong> bundled at build time
+      (<code>src/generated/{locale}/cancelSaveFlow.cms.json</code>). If a locale's JSON is missing
+      it automatically falls back to English — see
+      <code>src/store/sagas/cms.sagas.ts</code> lines 46–58.
+      There is no live Contentful SDK call, no <code>removeUnresolved</code> risk, and no crash
+      surface from this pattern. No action needed for CSF.
+    </p>
+  </section>
+
+
+  <!-- ===================== SECTION 5 ===================== -->
+  <section id="risk">
+    <h2>5. Risk Matrix</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Page / Surface</th>
+            <th>Strategy</th>
+            <th>Mapper crash risk</th>
+            <th>Component crash risk</th>
+            <th>Impact when down</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>/plans/[planGroup]</code></td>
+            <td>ISR · blocking</td>
+            <td><span class="tag tag-crash">High · 4 fields</span></td>
+            <td><span class="tag tag-crash">Confirmed · Oct 16</span></td>
+            <td>Full PnP page 500 for affected locale; no ISR fallback on first request</td>
+          </tr>
+          <tr>
+            <td><code>/checkout</code></td>
+            <td>SSR</td>
+            <td><span class="tag tag-crash">High · 6 fields</span></td>
+            <td><span class="tag tag-warn">Unverified</span></td>
+            <td>Checkout page 500</td>
+          </tr>
+          <tr>
+            <td><code>/billing/edit</code></td>
+            <td>SSR</td>
+            <td><span class="tag tag-crash">High · 6 fields</span></td>
+            <td><span class="tag tag-warn">Unverified</span></td>
+            <td>Edit billing 500</td>
+          </tr>
+          <tr>
+            <td><code>/subscription</code></td>
+            <td>SSR</td>
+            <td><span class="tag tag-crash">High · 3 fields</span></td>
+            <td><span class="tag tag-warn">Unverified</span></td>
+            <td>Subscription page 500</td>
+          </tr>
+          <tr>
+            <td><code>/subscription/[action]</code> (CSF)</td>
+            <td>Pre-generated JSON</td>
+            <td><span class="tag tag-safe">Safe — pre-generated JSON + en fallback</span></td>
+            <td><span class="tag tag-safe">Confirmed resilient</span></td>
+            <td>No live Contentful call; locale file missing → falls back to English</td>
+          </tr>
+          <tr>
+            <td><code>/api/cms/recommendations</code></td>
+            <td>API route</td>
+            <td><span class="tag tag-warn">Medium · same as PnP mapper</span></td>
+            <td>N/A (returns JSON)</td>
+            <td>IPT recommendations 500; main PnP still renders</td>
+          </tr>
+          <tr>
+            <td>pricing-plans widget (client-side IPT)</td>
+            <td>Client fetch</td>
+            <td>Handled server-side by API route</td>
+            <td><span class="tag tag-warn">Unverified · addon.cost etc.</span></td>
+            <td>Recommendations view broken; main PnP continues</td>
+          </tr>
+          <tr>
+            <td>subscriptions-billing widget (standalone)</td>
+            <td>SSR / widget scripts</td>
+            <td><span class="tag tag-crash">High · 3 fields confirmed</span></td>
+            <td><span class="tag tag-warn">Unverified</span></td>
+            <td>Subscription billing 500 (independent deploy path)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+
+  <!-- ===================== SECTION 6 ===================== -->
+  <section id="checklist">
+    <h2>6. Audit Checklist</h2>
+    <p>
+      Track progress through the remaining audit work below. State is saved to your browser.
+    </p>
+
+    <h3>CMS Service Layer (commerce-web)</h3>
+    <ul class="checklist">
+      <li><div class="cbox" onclick="ck(this)" tabindex="0"></div><span class="clabel">Audit <code>plansPage.ts</code> — 4 hard <code>.fields</code> accesses confirmed; verify no additional ones</span></li>
+      <li><div class="cbox" onclick="ck(this)" tabindex="0"></div><span class="clabel">Audit <code>checkoutPage.ts</code> — 3 mapper functions × 6 fields each; verify all 18 access points</span></li>
+      <li><div class="cbox" onclick="ck(this)" tabindex="0"></div><span class="clabel">Audit <code>subscriptionPage.ts</code> — 7 hard accesses confirmed; verify usage (is this mapper still actively used or superseded by the widget-script path?)</span></li>
+      <li><div class="cbox" onclick="ck(this)" tabindex="0"></div><span class="clabel"><s>Audit <code>cancelSaveFlowPage.ts</code></s> — N/A for the migrated widget. The <code>plg-cancel-save-flow</code> widget loads pre-generated JSON files, not live Contentful. The old <code>cancelSaveFlowPage.ts</code> in commerce-web may still need review if the old CSF route is still live.</span></li>
+      <li><div class="cbox" onclick="ck(this)" tabindex="0"></div><span class="clabel">Audit <code>utils.ts</code> shared mappers — <code>mapAddonEntryToProps</code>, <code>mapAddonGroupEntryToProps</code>, <code>mapFeatureGroupEntryToProps</code>, <code>mapCardEntryToProps</code> — trace what propagates undefined downstream</span></li>
+      <li><div class="cbox" onclick="ck(this)" tabindex="0"></div><span class="clabel">Audit <code>recommendationsWidgetData.ts</code> — mirrors plans mapper; verify same field access pattern</span></li>
+    </ul>
+
+    <h3>pricing-plans Widget (component tree)</h3>
+    <ul class="checklist">
+      <li><div class="cbox" onclick="ck(this)" tabindex="0"></div><span class="clabel">Grep <code>widgets/pricing-plans/src/components/</code> for all accesses to <code>addon.cost</code>, <code>addon.units</code>, <code>addon.purchaseDisclaimer</code> — find unguarded <code>.fields</code> accesses</span></li>
+      <li><div class="cbox" onclick="ck(this)" tabindex="0"></div><span class="clabel">Audit <code>widgets/pricing-plans/src/scripts/plansPage.ts</code> — parallel mapper used for widget's own CMS path</span></li>
+      <li><div class="cbox" onclick="ck(this)" tabindex="0"></div><span class="clabel">Check <code>hooks/useCmsData.ts</code> and Redux store — how CMS data is accessed from the store in the widget</span></li>
+      <li><div class="cbox" onclick="ck(this)" tabindex="0"></div><span class="clabel">Search component tree for <code>.fields.</code> accesses on plan entries in mapped arrays (<code>plans.map(…)</code>) — verify null safety on items</span></li>
+    </ul>
+
+    <h3>subscriptions-billing Widget</h3>
+    <ul class="checklist">
+      <li><div class="cbox" onclick="ck(this)" tabindex="0"></div><span class="clabel">Audit <code>widgets/subscriptions-billing/src/scripts/subscriptionBillingPage.ts</code> — 3 hard crashes confirmed; look for additional ones in helper functions</span></li>
+      <li><div class="cbox" onclick="ck(this)" tabindex="0"></div><span class="clabel">Audit <code>store/sagas/cms.sagas.ts</code> — how CMS data is loaded and consumed client-side</span></li>
+      <li><div class="cbox" onclick="ck(this)" tabindex="0"></div><span class="clabel">Sync with Meghana / Tim: is this widget being migrated to use commerce-web's CMS services? What's the timeline? Does the fix need to land in the widget and then be removed post-migration?</span></li>
+    </ul>
+
+    <h3>i18n CMS Backend (<code>@dxp/i18next-cms-backend</code>)</h3>
+    <ul class="checklist">
+      <li><div class="cbox" onclick="ck(this)" tabindex="0"></div><span class="clabel">Audit <code>packages/i18next-cms-backend/</code> GraphQL fetcher — does it handle missing or unpublished locale content gracefully, or can it also 500?</span></li>
+      <li><div class="cbox" onclick="ck(this)" tabindex="0"></div><span class="clabel">Verify behavior when <code>serverSideI18n()</code> is called for a locale with missing namespaces</span></li>
+    </ul>
+
+    <h3>Next.js Pages — Error Handling</h3>
+    <ul class="checklist">
+      <li><div class="cbox" onclick="ck(this)" tabindex="0"></div><span class="clabel">Confirm ISR catch-and-rethrow behavior in <code>/plans/[planGroup]/index.ts</code> is intentional (prevents stale cache update); document the trade-off</span></li>
+      <li><div class="cbox" onclick="ck(this)" tabindex="0"></div><span class="clabel">Audit SSR pages (<code>/checkout</code>, <code>/billing/edit</code>, <code>/subscription</code>, <code>/subscription/[action]</code>) — do they have similar catch patterns or do they handle errors differently?</span></li>
+      <li><div class="cbox" onclick="ck(this)" tabindex="0"></div><span class="clabel">Audit <code>/billing/payment-form/index.ts</code> — identify CMS fetch pattern (not yet reviewed)</span></li>
+    </ul>
+
+    <h3>CSF — Already safe, minimal action needed</h3>
+    <ul class="checklist">
+      <li><div class="cbox" onclick="ck(this)" tabindex="0"></div><span class="clabel">Confirm with Meghana / Tim that the old <code>/subscription/[action]</code> route (commerce-web, using <code>cancelSaveFlowPage.ts</code> + <code>csfClient</code>) is fully decommissioned and unreachable in production — if so, no resilience fix needed there either</span></li>
+      <li><div class="cbox" onclick="ck(this)" tabindex="0"></div><span class="clabel">Verify the <code>plg-cancel-save-flow</code> pre-generated JSON files cover all production locales (<code>de</code>, <code>en</code>, <code>en-GB</code>, <code>es</code>, <code>es-MX</code>, <code>fr</code>, <code>fr-CA</code>, <code>it</code>, <code>ja</code>, <code>nl</code>, <code>pt</code>, <code>pt-BR</code> confirmed ✓) and that the English fallback works in staging</span></li>
+    </ul>
+  </section>
+
+
+  <!-- ===================== SECTION 7 ===================== -->
+  <section id="open-questions">
+    <h2>7. Open Questions for Full Audit</h2>
+    <ol>
+      <li>
+        <strong>Which Contentful fields are genuinely optional at the data model level for non-US locales?</strong>
+        The TypeScript types from <code>@dxp/content</code> mark some fields as required, but
+        Contentful's own content model may not enforce this per-locale. We need to understand
+        which fields are required by contract vs. optional by practice before designing the fix.
+      </li>
+      <li>
+        <strong>Is the crash always in SSR, or also in client re-renders?</strong>
+        The Oct 16 crash was SSR (500). But client-rendered widgets that receive CMS data
+        as hydration props may also crash on client re-render if the undefined field reaches
+        a component that doesn't guard it. Need to verify whether the fix needs to cover
+        both SSR and client execution paths.
+      </li>
+      <li>
+        <strong>How should ISR interact with partially-missing CMS content?</strong>
+        The current catch-and-rethrow prevents a broken ISR cache update, which is correct.
+        But a better outcome is the page rendering in a degraded state (no addon section,
+        for example) rather than 500ing — because then the ISR cache gets populated and
+        subsequent requests are served the degraded page instead of hitting the origin again.
+      </li>
+      <li>
+        <strong>Where should the fix live — fetch boundary, transformation layer, or component?</strong>
+        Three options: (a) post-fetch validation that strips/flags invalid entries;
+        (b) optional chaining throughout all mappers; (c) null guards in component render.
+        Otilia's guidance points toward option (a) or (b) — "at the boundary where Contentful
+        data enters the app." The full audit scope will clarify which is most tractable given
+        the dual-client architecture and CSF migration.
+      </li>
+      <li>
+        <strong>Should there be a shared Contentful error boundary or data-validation utility?</strong>
+        If the fix is systemic, it should be a single utility that all fetch paths go through,
+        not per-mapper patches. The <code>apps/commerce-web/src/services/cms/</code> layer
+        is a good candidate for the insertion point — but only after the subscriptions-billing
+        divergence is resolved.
+      </li>
+    </ol>
+  </section>
+
+  <hr>
+
+  <footer class="footer">
+    <strong>Assigned:</strong> Mohith Bayya &nbsp;·&nbsp;
+    <strong>Ticket:</strong> PLG-69859 &nbsp;·&nbsp;
+    Part 2 (solution design) to follow after audit completion and sync with Meghana / Tim on CSF and subscriptions-billing.
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  var KEY = 'cms-audit-v1';
+
+  function ck(box) {
+    box.classList.toggle('checked');
+    var li = box.parentElement;
+    li.classList.toggle('done', box.classList.contains('checked'));
+    save();
+  }
+  window.ck = ck;
+
+  function save() {
+    var state = {};
+    document.querySelectorAll('.cbox').forEach(function (b, i) {
+      state[i] = b.classList.contains('checked');
+    });
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (_) {}
+  }
+
+  function load() {
+    try {
+      var saved = JSON.parse(localStorage.getItem(KEY) || '{}');
+      document.querySelectorAll('.cbox').forEach(function (b, i) {
+        if (saved[i]) {
+          b.classList.add('checked');
+          b.parentElement.classList.add('done');
+        }
+      });
+    } catch (_) {}
+  }
+
+  document.querySelectorAll('.cbox').forEach(function (b) {
+    b.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ck(b); }
+    });
+  });
+
+  load();
+}());
+</script>
